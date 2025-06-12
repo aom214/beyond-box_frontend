@@ -1,0 +1,6 @@
+.nav-pills .nav-link.active {
+  background-color: #ffe100 !important; /* Bright yellow background */
+  color: #000 !important;               /* Make text black */
+  font-weight: bold;
+  border-radius: 50px;
+}
