@@ -12,7 +12,7 @@ const Video = () => {
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/BeyondBox/all-activities');
+        const response = await axios.get('https://beyond-sfne.onrender.com/api/BeyondBox/all-activities');
         const activityData = response.data.activities;
 
         // Prepare the videos array with the necessary data
