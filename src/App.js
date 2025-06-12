@@ -8,37 +8,30 @@ import VideoUpload from './ActivitySubmission.js';
 const App = () => {
   return (
     <Router>
-      <Routes>
-        <Route path="*" element={<NavbarAndRoutes />} />
-      </Routes>
+      <NavbarAndRoutes />
     </Router>
   );
 };
 
 // A separate component to handle Navbar visibility logic
 const NavbarAndRoutes = () => {
-  const location = useLocation(); // useLocation within the Router context
+  const location = useLocation();
 
   return (
     <>
-      {/* Conditionally render Navbar, hide it on activity pages */}
       {!location.pathname.startsWith('/activity/') && <Navbar />}
 
       <Routes>
-        {/* Redirect to /videos by default */}
-        <Route path="/" element={<Navigate to="/videos" />} />
+        {/* Default route */}
+        <Route path="/" element={<Navigate to="/videos" replace />} />
 
-        {/* Route for displaying video list */}
         <Route path="/videos" element={<Video />} />
-
-        {/* Placeholder for images page */}
         <Route path="/images" element={<h2>Activity Images Page</h2>} />
-
-        {/* Placeholder for comments page */}
         <Route path="/comments" element={<h2>Comments Page</h2>} />
-
-        {/* Dynamic route for activity video upload, passing activity number */}
         <Route path="/activity/:activityNumber" element={<VideoUpload />} />
+
+        {/* Catch-all route for unknown paths */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
