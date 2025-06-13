@@ -4,6 +4,8 @@ import './App.css';
 import Navbar from './navbar.js';
 import Video from './Video.js';
 import VideoUpload from './ActivitySubmission.js';
+import ImageUpload from './ImageUpload.js';
+import Images from './Image.js';
 
 const App = () => {
   return (
@@ -13,7 +15,6 @@ const App = () => {
   );
 };
 
-// A separate component to handle Navbar visibility logic
 const NavbarAndRoutes = () => {
   const location = useLocation();
 
@@ -22,17 +23,18 @@ const NavbarAndRoutes = () => {
       {!location.pathname.startsWith('/activity/') && <Navbar />}
 
       <Routes>
-        {/* Default route */}
-        <Route path="/" element={<Navigate to="/videos" replace />} />
+          {/* Image Upload */}
+          <Route path="/upload-image/:userId/:topic/:activityNo" element={<ImageUpload />} />
 
-        <Route path="/videos/:user_id" element={<Video />} />
-        <Route path="/images" element={<h2>Activity Images Page</h2>} />
-        <Route path="/comments" element={<h2>Comments Page</h2>} />
-        <Route path="/activity/:activityNumber" element={<VideoUpload />} />
+          {/* Video Upload */}
+          <Route path="/upload-video/:userId/:topic/:activityNo" element={<VideoUpload />} />
 
-        {/* Catch-all route for unknown paths */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Existing routes */}
+          <Route path="/videos/:topic" element={<Video />} />
+          <Route path="/images/:topic" element={<Images />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
     </>
   );
 };

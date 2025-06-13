@@ -1,122 +1,97 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import axios from 'axios';
-import Spinner from 'react-bootstrap/Spinner'; // Ensure react-bootstrap is installed
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './Video.css';
 
-const Video = () => {
-  const [videos, setVideos] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [videosPerPage, setVideosPerPage] = useState(6);
-  const [loading, setLoading] = useState(false);
+const allowedTopics = ["Archimedes", "Marie Curie", "Tesla", "Einstein"];
+
+const VideoUpload = () => {
+  const { userId, topic, activityNo } = useParams();
+
+  const [videoFile, setVideoFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
 
   useEffect(() => {
-    const fetchVideos = async () => {
-      setLoading(true);
+    // Validate topic
+    if (!allowedTopics.includes(topic)) {
+      setError(`Invalid topic: ${topic}`);
+      return;
+    }
+
+    // Check if video already submitted
+    const checkExisting = async () => {
       try {
-        const response = await axios.get(
-          'https://beyond-sfne.onrender.com/api/BeyondBox/all-activities'
-        );
-        const activityData = response.data.activities || [];
-
-        const videoData = activityData.map(activity => ({
-          url: activity.fileUrl,
-          title: `Activity ${activity.activityNo}: ${activity.activityType}`,
-          poster:
-            activity.fileUrl
-              .replace('raw', 'video')
-              .replace('.mp4', '.jpg') ||
-            `https://via.placeholder.com/320x180.png?text=Video+${activity.activityNo}`,
-        }));
-
-        setVideos(videoData);
-      } catch (error) {
-        console.error('Error fetching videos:', error);
-      } finally {
-        setLoading(false);
+        const response = await axios.get(`https://beyond-sfne.onrender.com/api/BeyondBox/${userId}/${topic}/Video`);
+        const exists = response.data.activities.some(item => item.activityNo.toString() === activityNo);
+        if (exists) {
+          setAlreadySubmitted(true);
+        }
+      } catch (err) {
+        setError("Error checking existing video.");
       }
     };
 
-    fetchVideos();
-  }, []);
+    checkExisting();
+  }, [userId, topic, activityNo]);
 
-  useEffect(() => {
-    const updateSize = () => {
-      const width = window.innerWidth;
-      if (width < 768) setVideosPerPage(2);
-      else if (width < 992) setVideosPerPage(4);
-      else setVideosPerPage(6);
-    };
+  const handleVideoChange = (e) => {
+    setVideoFile(e.target.files[0]);
+    setError(null);
+    setSuccess(null);
+  };
 
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const indexOfLast = currentPage * videosPerPage;
-  const indexOfFirst = indexOfLast - videosPerPage;
-  const currentVideos = videos.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(videos.length / videosPerPage);
+    if (!videoFile) {
+      setError("Please select a video file.");
+      return;
+    }
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Loading videos...</span>
-        </Spinner>
-      </div>
-    );
-  }
+    setUploading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', videoFile);
+      await axios.post(`https://beyond-sfne.onrender.com/${userId}/${topic}/${activityNo}/Video`, formData);
+      setSuccess("Video uploaded successfully!");
+      setAlreadySubmitted(true);
+    } catch (err) {
+      setError(err.response?.data?.error || "Error uploading video.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
-    <div className="video-page">
-      <div className="container">
-        <h2 className="video-title text-center mb-5">
-          🎥 Fun Learning Videos for Kids
-        </h2>
-        <div className="video-grid">
-          {currentVideos.map((video, index) => (
-            <div key={index} className="video-card mb-4">
-              <video
-                controls
-                className="video-player"
-                poster={video.poster}
-              >
-                <source src={video.url} type="video/mp4" />
-              </video>
-              <div className="video-title-label text-center mt-2">
-                {video.title}
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="upload-container">
+      <h1>Upload Video: {topic} - Activity {activityNo}</h1>
 
-        {totalPages > 1 && (
-          <div className="d-flex justify-content-center mt-4">
-            <nav>
-              <ul className="pagination pagination-sm">
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <li
-                    key={i}
-                    className={`page-item ${
-                      currentPage === i + 1 ? 'active' : ''
-                    }`}
-                  >
-                    <button
-                      className="page-link"
-                      onClick={() => setCurrentPage(i + 1)}
-                    >
-                      {i + 1}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+      {alreadySubmitted ? (
+        <p style={{ color: "green", fontWeight: "bold" }}>Video already submitted for this activity!</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="upload-form">
+          <div className="form-group">
+            <label>Choose Video File:</label>
+            <input type="file" accept="video/*" onChange={handleVideoChange} />
           </div>
-        )}
-      </div>
+
+          {error && <p className="error-message">{error}</p>}
+          {success && <p className="success-message">{success}</p>}
+
+          <div className="submit-button-container">
+            <button type="submit" disabled={uploading}>
+              {uploading ? 'Uploading...' : 'Upload Video'}
+            </button>
+          </div>
+        </form>
+      )}
     </div>
   );
 };
 
-export default Video;
+export default VideoUpload;

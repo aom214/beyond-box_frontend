@@ -4,44 +4,40 @@ import axios from 'axios';
 
 const allowedTopics = ["Archimedes", "Marie Curie", "Tesla", "Einstein"];
 
-const VideoUpload = () => {
+const ImageUpload = () => {
   const { userId, topic, activityNo } = useParams();
 
-  const [videoFile, setVideoFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Validate topic
     if (!allowedTopics.includes(topic)) {
       setError(`Invalid topic: ${topic}`);
-      setLoading(false);
       return;
     }
 
-    // Check if activity video already submitted
+    // Check if image already submitted
     const checkExisting = async () => {
       try {
-        const response = await axios.get(`https://beyond-sfne.onrender.com/api/BeyondBox/${userId}/${topic}/${activityNo}`);
-        // We check only if video is already submitted (not photo)
-        if (response.data.details?.videoSubmitted === true) {
+        const response = await axios.get(`https://beyond-sfne.onrender.com/${userId}/${topic}/Image`);
+        const exists = response.data.activities.some(item => item.activityNo.toString() === activityNo);
+        if (exists) {
           setAlreadySubmitted(true);
         }
       } catch (err) {
-        setError("Error checking existing video.");
-      } finally {
-        setLoading(false);
+        setError("Error checking existing image.");
       }
     };
 
     checkExisting();
   }, [userId, topic, activityNo]);
 
-  const handleVideoChange = (e) => {
-    setVideoFile(e.target.files[0]);
+  const handleImageChange = (e) => {
+    setImageFile(e.target.files[0]);
     setError(null);
     setSuccess(null);
   };
@@ -49,8 +45,8 @@ const VideoUpload = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!videoFile) {
-      setError("Please select a video file.");
+    if (!imageFile) {
+      setError("Please select an image file.");
       return;
     }
 
@@ -60,32 +56,28 @@ const VideoUpload = () => {
 
     try {
       const formData = new FormData();
-      formData.append('file', videoFile);
-      await axios.post(`https://beyond-sfne.onrender.com/api/BeyondBox/${userId}/${topic}/${activityNo}/Video`, formData);
-      setSuccess("Video uploaded successfully!");
+      formData.append('file', imageFile);
+      await axios.post(`https://beyond-sfne.onrender.com/api/BeyondBox${userId}/${topic}/${activityNo}/Image`, formData);
+      setSuccess("Image uploaded successfully!");
       setAlreadySubmitted(true);
     } catch (err) {
-      setError(err.response?.data?.error || "Error uploading video.");
+      setError(err.response?.data?.error || "Error uploading image.");
     } finally {
       setUploading(false);
     }
   };
 
-  if (loading) {
-    return <div>Loading, please wait...</div>;
-  }
-
   return (
     <div className="upload-container">
-      <h1>Upload Video: {topic} - Activity {activityNo}</h1>
+      <h1>Upload Image: {topic} - Activity {activityNo}</h1>
 
       {alreadySubmitted ? (
-        <p style={{ color: "green", fontWeight: "bold" }}>Video already submitted for this activity!</p>
+        <p style={{ color: "green", fontWeight: "bold" }}>Image already submitted for this activity!</p>
       ) : (
         <form onSubmit={handleSubmit} className="upload-form">
           <div className="form-group">
-            <label>Choose Video File:</label>
-            <input type="file" accept="video/*" onChange={handleVideoChange} />
+            <label>Choose Image File:</label>
+            <input type="file" accept="image/*" onChange={handleImageChange} />
           </div>
 
           {error && <p className="error-message">{error}</p>}
@@ -93,7 +85,7 @@ const VideoUpload = () => {
 
           <div className="submit-button-container">
             <button type="submit" disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload Video'}
+              {uploading ? 'Uploading...' : 'Upload Image'}
             </button>
           </div>
         </form>
@@ -102,4 +94,4 @@ const VideoUpload = () => {
   );
 };
 
-export default VideoUpload;
+export default ImageUpload;
