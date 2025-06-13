@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Spinner from 'react-bootstrap/Spinner'; // Ensure react-bootstrap is installed
+import Spinner from 'react-bootstrap/Spinner';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Video.css';
 
@@ -9,7 +9,23 @@ const Video = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [videosPerPage, setVideosPerPage] = useState(6);
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState(null);  // <-- State for Wix User ID
 
+  // Listen to postMessage from Wix
+  useEffect(() => {
+    const handleMessage = (event) => {
+      // You may optionally check event.origin for security
+      if (event.data) {
+        setUserId(event.data);
+        console.log("Received Wix User ID:", event.data);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // Fetch Videos
   useEffect(() => {
     const fetchVideos = async () => {
       setLoading(true);
@@ -40,6 +56,7 @@ const Video = () => {
     fetchVideos();
   }, []);
 
+  // Responsive Video Count
   useEffect(() => {
     const updateSize = () => {
       const width = window.innerWidth;
@@ -71,9 +88,19 @@ const Video = () => {
   return (
     <div className="video-page">
       <div className="container">
+        {/* Show User ID at top */}
+        <div className="text-center mb-3">
+          {userId ? (
+            <h5>Welcome User: {userId}</h5>
+          ) : (
+            <h5>Loading user information...</h5>
+          )}
+        </div>
+
         <h2 className="video-title text-center mb-5">
           🎥 Fun Learning Videos for Kids
         </h2>
+
         <div className="video-grid">
           {currentVideos.map((video, index) => (
             <div key={index} className="video-card mb-4">
@@ -98,9 +125,7 @@ const Video = () => {
                 {Array.from({ length: totalPages }, (_, i) => (
                   <li
                     key={i}
-                    className={`page-item ${
-                      currentPage === i + 1 ? 'active' : ''
-                    }`}
+                    className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}
                   >
                     <button
                       className="page-link"
