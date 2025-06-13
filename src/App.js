@@ -1,11 +1,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import './App.css';
-import Navbar from './navbar.js';
-import Video from './Video.js';
-import VideoUpload from './ActivitySubmission.js';
-import ImageUpload from './ImageUpload.js';
-import Images from './Image.js';
+import Navbar from './navbar';
+import Video from './Video';
+import VideoUpload from './ActivitySubmission';
+import ImageUpload from './ImageUpload';
+import Images from './Image';  // Assuming you have Comments page
 
 const App = () => {
   return (
@@ -18,23 +18,27 @@ const App = () => {
 const NavbarAndRoutes = () => {
   const location = useLocation();
 
+  const hideNavbar = location.pathname.startsWith('/upload-image/') || location.pathname.startsWith('/upload-video/');
+
   return (
     <>
-      {!location.pathname.startsWith('/activity/') && <Navbar />}
+      {!hideNavbar && <Navbar />}
 
       <Routes>
-          {/* Image Upload */}
-          <Route path="/upload-image/:userId/:topic/:activityNo" element={<ImageUpload />} />
+        {/* Image Upload */}
+        <Route path="/upload-image/:userId/:topic/:activityNo" element={<ImageUpload />} />
 
-          {/* Video Upload */}
-          <Route path="/upload-video/:userId/:topic/:activityNo" element={<VideoUpload />} />
+        {/* Video Upload */}
+        <Route path="/upload-video/:userId/:topic/:activityNo" element={<VideoUpload />} />
 
-          {/* Existing routes */}
-          <Route path="/videos/:topic" element={<Video />} />
-          <Route path="/images/:topic" element={<Images />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        {/* All Topic Routes */}
+        <Route path="/videos/:topic" element={<Video />} />
+        <Route path="/images/:topic" element={<Images />} />
 
+
+        {/* Default Redirect */}
+        <Route path="*" element={<Navigate to="/videos/archimedes" replace />} />
+      </Routes>
     </>
   );
 };

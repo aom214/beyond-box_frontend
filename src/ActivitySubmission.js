@@ -15,18 +15,15 @@ const VideoUpload = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Validate topic
     if (!allowedTopics.includes(topic)) {
       setError(`Invalid topic: ${topic}`);
       setLoading(false);
       return;
     }
 
-    // Check if activity video already submitted
     const checkExisting = async () => {
       try {
         const response = await axios.get(`https://beyond-sfne.onrender.com/api/BeyondBox/${userId}/${topic}/${activityNo}`);
-        // We check only if video is already submitted (not photo)
         if (response.data.details?.videoSubmitted === true) {
           setAlreadySubmitted(true);
         }
@@ -71,35 +68,157 @@ const VideoUpload = () => {
     }
   };
 
+  // 🔄 Full screen spinner while uploading
+  if (uploading) {
+    return (
+      <div style={styles.uploadingContainer}>
+        <div style={styles.spinner}></div>
+        <p style={styles.uploadingNote}>Please do not refresh or close the page while uploading.</p>
+
+        <style>
+          {`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div>Loading, please wait...</div>;
+    return (
+      <div style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+      </div>
+    );
   }
 
   return (
-    <div className="upload-container">
-      <h1>Upload Video: {topic} - Activity {activityNo}</h1>
+    <div style={styles.container}>
+      <h1 style={styles.heading}>🎥 Upload Your Video!</h1>
+      <h2 style={styles.subHeading}>{topic} - Activity {activityNo}</h2>
 
       {alreadySubmitted ? (
-        <p style={{ color: "green", fontWeight: "bold" }}>Video already submitted for this activity!</p>
+        <p style={styles.successMessage}>✅ Video submitted for this activity!</p>
       ) : (
-        <form onSubmit={handleSubmit} className="upload-form">
-          <div className="form-group">
-            <label>Choose Video File:</label>
-            <input type="file" accept="video/*" onChange={handleVideoChange} />
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Choose Video File:</label>
+            <input type="file" accept="video/*" onChange={handleVideoChange} style={styles.input} />
           </div>
 
-          {error && <p className="error-message">{error}</p>}
-          {success && <p className="success-message">{success}</p>}
+          {error && <p style={styles.errorMessage}>{error}</p>}
+          {success && <p style={styles.successMessage}>{success}</p>}
 
-          <div className="submit-button-container">
-            <button type="submit" disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload Video'}
+          <div style={styles.buttonContainer}>
+            <button type="submit" disabled={uploading} style={styles.button}>
+              Upload Video
             </button>
           </div>
         </form>
       )}
     </div>
   );
+};
+
+const styles = {
+  container: {
+    background: 'linear-gradient(135deg, #FFFDE7 0%, #FFF9C4 100%)',
+    minHeight: '100vh',
+    padding: '30px',
+    textAlign: 'center',
+    fontFamily: '"Comic Sans MS", cursive, sans-serif',
+  },
+  heading: {
+    fontSize: '36px',
+    color: '#FF5722',
+    marginBottom: '10px',
+  },
+  subHeading: {
+    fontSize: '22px',
+    color: '#555',
+    marginBottom: '30px',
+  },
+  form: {
+    background: '#FFFFFF',
+    padding: '30px',
+    borderRadius: '20px',
+    boxShadow: '0 5px 15px rgba(0,0,0,0.15)',
+    maxWidth: '500px',
+    margin: '0 auto',
+  },
+  formGroup: {
+    marginBottom: '20px',
+  },
+  label: {
+    fontSize: '20px',
+    color: '#555',
+    marginBottom: '10px',
+    display: 'block',
+  },
+  input: {
+    fontSize: '16px',
+    padding: '10px',
+    borderRadius: '10px',
+    border: '1px solid #ccc',
+    width: '80%',
+  },
+  buttonContainer: {
+    marginTop: '20px',
+  },
+  button: {
+    fontSize: '20px',
+    padding: '10px 30px',
+    borderRadius: '50px',
+    backgroundColor: '#FFD54F',
+    color: '#333',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+  },
+  errorMessage: {
+    color: 'red',
+    fontWeight: 'bold',
+    marginTop: '10px',
+  },
+  successMessage: {
+    color: 'green',
+    fontWeight: 'bold',
+    marginTop: '10px',
+  },
+  loadingContainer: {
+    background: '#FFF9C4',
+    minHeight: '100vh',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontFamily: '"Comic Sans MS", cursive, sans-serif',
+  },
+  uploadingContainer: {
+    background: '#FFF9C4',
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    fontFamily: '"Comic Sans MS", cursive, sans-serif',
+  },
+  spinner: {
+    border: '8px solid #FFF3E0',
+    borderTop: '8px solid #FF9800',
+    borderRadius: '50%',
+    width: '80px',
+    height: '80px',
+    animation: 'spin 1s linear infinite',
+  },
+  uploadingNote: {
+    marginTop: '20px',
+    fontSize: '18px',
+    color: '#D84315',
+    fontWeight: 'bold',
+  }
 };
 
 export default VideoUpload;

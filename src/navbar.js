@@ -1,9 +1,11 @@
-// Navbar.js
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import Nav from 'react-bootstrap/Nav';
-import './Navbar.css'
+import './Navbar.css';
 
 const Navbar = () => {
+  const location = useLocation();
+  const topic = location.pathname.split("/")[2] || "archimedes";
+
   return (
     <div
       className="d-flex justify-content-center py-3"
@@ -13,10 +15,12 @@ const Navbar = () => {
       }}
     >
       <Nav variant="pills" className="gap-4">
+
+        {/* Activity Videos */}
         <Nav.Item>
           <Nav.Link
             as={NavLink}
-            to="/videos"
+            to={`/videos/${topic}`}
             className="text-white"
             style={({ isActive }) =>
               isActive ? { backgroundColor: "#ffe100", color: "black", borderRadius: "50px", fontWeight: "bold" } : {}
@@ -25,10 +29,12 @@ const Navbar = () => {
             Activity Videos
           </Nav.Link>
         </Nav.Item>
+
+        {/* Activity Images */}
         <Nav.Item>
           <Nav.Link
             as={NavLink}
-            to="/images"
+            to={`/images/${topic}`}
             className="text-white"
             style={({ isActive }) =>
               isActive ? { backgroundColor: "#ffe100", color: "black", borderRadius: "50px", fontWeight: "bold" } : {}
@@ -37,18 +43,7 @@ const Navbar = () => {
             Activity Images
           </Nav.Link>
         </Nav.Item>
-        <Nav.Item>
-          <Nav.Link
-            as={NavLink}
-            to="/comments"
-            className="text-white"
-            style={({ isActive }) =>
-              isActive ? { backgroundColor: "#ffe100", color: "black", borderRadius: "50px", fontWeight: "bold" } : {}
-            }
-          >
-            Comments
-          </Nav.Link>
-        </Nav.Item>
+
       </Nav>
     </div>
   );

@@ -2,96 +2,218 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 
-const allowedTopics = ["Archimedes", "Marie Curie", "Tesla", "Einstein"];
+const allowedTopics = {
+  archimedes: "Archimedes",
+  mariecurie: "MarieCurie",
+  tesla: "Tesla",
+  einstein: "Einstein"
+};
 
-const ImageUpload = () => {
-  const { userId, topic, activityNo } = useParams();
+const ImageDisplay = () => {
+  const { topic } = useParams();
+  const normalizedTopic = topic.toLowerCase();
 
-  const [imageFile, setImageFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
-    // Validate topic
-    if (!allowedTopics.includes(topic)) {
-      setError(`Invalid topic: ${topic}`);
+    if (!allowedTopics.hasOwnProperty(normalizedTopic)) {
+      setError("Invalid topic. Please select a valid topic.");
+      setLoading(false);
       return;
     }
 
-    // Check if image already submitted
-    const checkExisting = async () => {
+    const fetchImages = async () => {
       try {
-        const response = await axios.get(`https://beyond-sfne.onrender.com/${userId}/${topic}/Image`);
-        const exists = response.data.activities.some(item => item.activityNo.toString() === activityNo);
-        if (exists) {
-          setAlreadySubmitted(true);
-        }
+        const response = await axios.get(`https://beyond-sfne.onrender.com/api/BeyondBox/${allowedTopics[normalizedTopic]}/Image`);
+        setImages(response.data.activities || []);
       } catch (err) {
-        setError("Error checking existing image.");
+        setError("Error fetching images");
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkExisting();
-  }, [userId, topic, activityNo]);
+    fetchImages();
+  }, [normalizedTopic]);
 
-  const handleImageChange = (e) => {
-    setImageFile(e.target.files[0]);
-    setError(null);
-    setSuccess(null);
+  const handleDownload = (fileUrl, activityNo) => {
+    fetch(fileUrl)
+      .then(response => response.blob())
+      .then(blob => {
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `Activity_${activityNo}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  if (loading) {
+    return <div style={styles.loading}>Loading images...</div>;
+  }
 
-    if (!imageFile) {
-      setError("Please select an image file.");
-      return;
-    }
-
-    setUploading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', imageFile);
-      await axios.post(`https://beyond-sfne.onrender.com/api/BeyondBox${userId}/${topic}/${activityNo}/Image`, formData);
-      setSuccess("Image uploaded successfully!");
-      setAlreadySubmitted(true);
-    } catch (err) {
-      setError(err.response?.data?.error || "Error uploading image.");
-    } finally {
-      setUploading(false);
-    }
-  };
+  if (error) {
+    return <div style={styles.error}>{error}</div>;
+  }
 
   return (
-    <div className="upload-container">
-      <h1>Upload Image: {topic} - Activity {activityNo}</h1>
+    <div style={styles.container}>
+      <h1 style={styles.heading}>🖼 Images for {allowedTopics[normalizedTopic]}</h1>
 
-      {alreadySubmitted ? (
-        <p style={{ color: "green", fontWeight: "bold" }}>Image already submitted for this activity!</p>
-      ) : (
-        <form onSubmit={handleSubmit} className="upload-form">
-          <div className="form-group">
-            <label>Choose Image File:</label>
-            <input type="file" accept="image/*" onChange={handleImageChange} />
+      <div style={styles.grid}>
+        {images.length > 0 ? (
+          images.map((image) => (
+            <div key={image._id} style={styles.card}>
+              <div style={styles.imageWrapper} onClick={() => setSelectedImage(image)}>
+                <img src={image.fileUrl} alt={`Activity ${image.activityNo}`} style={styles.image} />
+                <div style={styles.overlay}></div>
+              </div>
+              <p style={styles.activityNo}>Activity #{image.activityNo}</p>
+              <button style={styles.downloadButton} onClick={() => handleDownload(image.fileUrl, image.activityNo)}>
+                Download
+              </button>
+            </div>
+          ))
+        ) : (
+          <p style={styles.noData}>No images available for this topic</p>
+        )}
+      </div>
+
+      {selectedImage && (
+        <div style={styles.popupOverlay} onClick={() => setSelectedImage(null)}>
+          <div style={styles.popupContent} onClick={(e) => e.stopPropagation()}>
+            <img src={selectedImage.fileUrl} alt={`Activity ${selectedImage.activityNo}`} style={styles.fullImage} />
+            <button onClick={() => setSelectedImage(null)} style={styles.closeButton}>X</button>
           </div>
-
-          {error && <p className="error-message">{error}</p>}
-          {success && <p className="success-message">{success}</p>}
-
-          <div className="submit-button-container">
-            <button type="submit" disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload Image'}
-            </button>
-          </div>
-        </form>
+        </div>
       )}
     </div>
   );
 };
 
-export default ImageUpload;
+const styles = {
+  container: {
+    padding: '20px',
+    fontFamily: '"Comic Sans MS", cursive, sans-serif',
+    background: 'linear-gradient(135deg, #FFFDE7 0%, #FFF9C4 100%)',
+    minHeight: '100vh',
+  },
+  heading: {
+    fontSize: '32px',
+    textAlign: 'center',
+    color: '#FF5722',
+    marginBottom: '30px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '30px',
+  },
+  card: {
+    background: '#ffffff',
+    borderRadius: '15px',
+    boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+    padding: '15px',
+    textAlign: 'center',
+    transition: 'transform 0.3s ease',
+  },
+  imageWrapper: {
+    position: 'relative',
+    borderRadius: '10px',
+    overflow: 'hidden',
+    cursor: 'pointer',
+  },
+  image: {
+    width: '100%',
+    height: '300px',
+    objectFit: 'cover',
+    filter: 'brightness(85%)',
+    transition: 'transform 0.3s ease',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0, left: 0,
+    width: '100%',
+    height: '100%',
+    background: 'rgba(0,0,0,0.15)',
+  },
+  activityNo: {
+    marginTop: '15px',
+    fontWeight: 'bold',
+    fontSize: '18px',
+  },
+  downloadButton: {
+    marginTop: '10px',
+    padding: '10px 20px',
+    backgroundColor: '#FF9800',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '20px',
+    fontSize: '16px',
+    cursor: 'pointer',
+  },
+  loading: {
+    textAlign: 'center',
+    padding: '50px',
+    fontSize: '24px',
+    color: '#FF9800',
+  },
+  error: {
+    textAlign: 'center',
+    padding: '50px',
+    fontSize: '24px',
+    color: 'red',
+  },
+  noData: {
+    textAlign: 'center',
+    padding: '20px',
+    fontSize: '20px',
+    color: '#999',
+  },
+
+  // Popup styles
+  popupOverlay: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.7)',
+    zIndex: 999,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  popupContent: {
+    position: 'relative',
+    background: '#fff',
+    borderRadius: '10px',
+    padding: '20px',
+    textAlign: 'center',
+    maxWidth: '90%',
+    maxHeight: '90%',
+  },
+  fullImage: {
+    maxWidth: '100%',
+    maxHeight: '80vh',
+    borderRadius: '10px',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: '10px',
+    right: '15px',
+    background: '#FF5722',
+    border: 'none',
+    color: '#fff',
+    borderRadius: '50%',
+    width: '35px',
+    height: '35px',
+    fontSize: '18px',
+    cursor: 'pointer',
+  }
+};
+
+export default ImageDisplay;

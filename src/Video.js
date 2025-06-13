@@ -2,96 +2,136 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 
-const allowedTopics = ["Archimedes", "Marie Curie", "Tesla", "Einstein"];
+// ✅ Centralized allowed topics with normalization mapping
+const allowedTopics = {
+  archimedes: "Archimedes",
+  mariecurie: "MarieCurie",
+  tesla: "Tesla",
+  einstein: "Einstein"
+};
 
-const VideoUpload = () => {
-  const { userId, topic, activityNo } = useParams();
+const VideoDisplay = () => {
+  const { topic } = useParams();
+  const normalizedTopic = topic.toLowerCase();
 
-  const [videoFile, setVideoFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
 
   useEffect(() => {
-    // Validate topic
-    if (!allowedTopics.includes(topic)) {
-      setError(`Invalid topic: ${topic}`);
+    if (!allowedTopics.hasOwnProperty(normalizedTopic)) {
+      setError("Invalid topic. Please select a valid topic.");
+      setLoading(false);
       return;
     }
 
-    // Check if video already submitted
-    const checkExisting = async () => {
+    const fetchVideos = async () => {
       try {
-        const response = await axios.get(`https://beyond-sfne.onrender.com/api/BeyondBox/${userId}/${topic}/Video`);
-        const exists = response.data.activities.some(item => item.activityNo.toString() === activityNo);
-        if (exists) {
-          setAlreadySubmitted(true);
-        }
+        const response = await axios.get(`https://beyond-sfne.onrender.com/api/BeyondBox/${allowedTopics[normalizedTopic]}/Video`);
+        setVideos(response.data.activities || []);
       } catch (err) {
-        setError("Error checking existing video.");
+        setError("Error fetching videos");
+      } finally {
+        setLoading(false);
       }
     };
 
-    checkExisting();
-  }, [userId, topic, activityNo]);
+    fetchVideos();
+  }, [normalizedTopic]);
 
-  const handleVideoChange = (e) => {
-    setVideoFile(e.target.files[0]);
-    setError(null);
-    setSuccess(null);
-  };
+  if (loading) {
+    return <div style={styles.loading}>Loading videos...</div>;
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!videoFile) {
-      setError("Please select a video file.");
-      return;
-    }
-
-    setUploading(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', videoFile);
-      await axios.post(`https://beyond-sfne.onrender.com/${userId}/${topic}/${activityNo}/Video`, formData);
-      setSuccess("Video uploaded successfully!");
-      setAlreadySubmitted(true);
-    } catch (err) {
-      setError(err.response?.data?.error || "Error uploading video.");
-    } finally {
-      setUploading(false);
-    }
-  };
+  if (error) {
+    return <div style={styles.error}>{error}</div>;
+  }
 
   return (
-    <div className="upload-container">
-      <h1>Upload Video: {topic} - Activity {activityNo}</h1>
+    <div style={styles.container}>
+      <h1 style={styles.heading}>🎥 Videos for {allowedTopics[normalizedTopic]}</h1>
 
-      {alreadySubmitted ? (
-        <p style={{ color: "green", fontWeight: "bold" }}>Video already submitted for this activity!</p>
-      ) : (
-        <form onSubmit={handleSubmit} className="upload-form">
-          <div className="form-group">
-            <label>Choose Video File:</label>
-            <input type="file" accept="video/*" onChange={handleVideoChange} />
-          </div>
-
-          {error && <p className="error-message">{error}</p>}
-          {success && <p className="success-message">{success}</p>}
-
-          <div className="submit-button-container">
-            <button type="submit" disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload Video'}
-            </button>
-          </div>
-        </form>
-      )}
+      <div style={styles.grid}>
+        {videos.length > 0 ? (
+          videos.map((video) => (
+            <div key={video._id} style={styles.card}>
+              <div style={styles.videoWrapper}>
+                <video style={styles.video} controls>
+                  <source src={video.fileUrl} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+              <p style={styles.activityNo}>Activity #{video.activityNo}</p>
+            </div>
+          ))
+        ) : (
+          <p style={styles.noData}>No videos available for this topic</p>
+        )}
+      </div>
     </div>
   );
 };
 
-export default VideoUpload;
+const styles = {
+  container: {
+    padding: '20px',
+    fontFamily: '"Comic Sans MS", cursive, sans-serif',
+    background: 'linear-gradient(135deg, #FFFDE7 0%, #FFF9C4 100%)',
+    minHeight: '100vh',
+  },
+  heading: {
+    fontSize: '32px',
+    textAlign: 'center',
+    color: '#FF5722',
+    marginBottom: '30px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '30px',
+  },
+  card: {
+    background: '#ffffff',
+    borderRadius: '15px',
+    boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
+    padding: '15px',
+    textAlign: 'center',
+    transition: 'transform 0.3s ease',
+  },
+  videoWrapper: {
+    position: 'relative',
+    borderRadius: '10px',
+    overflow: 'hidden',
+  },
+  video: {
+    width: '100%',
+    height: '300px',
+    objectFit: 'cover',
+    borderRadius: '10px',
+  },
+  activityNo: {
+    marginTop: '15px',
+    fontWeight: 'bold',
+    fontSize: '18px',
+  },
+  loading: {
+    textAlign: 'center',
+    padding: '50px',
+    fontSize: '24px',
+    color: '#FF9800',
+  },
+  error: {
+    textAlign: 'center',
+    padding: '50px',
+    fontSize: '24px',
+    color: 'red',
+  },
+  noData: {
+    textAlign: 'center',
+    padding: '20px',
+    fontSize: '20px',
+    color: '#999',
+  }
+};
+
+export default VideoDisplay;
