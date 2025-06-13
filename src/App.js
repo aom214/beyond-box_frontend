@@ -25,7 +25,7 @@ const NavbarAndRoutes = () => {
         {/* Default route */}
         <Route path="/" element={<Navigate to="/videos" replace />} />
 
-        <Route path="/videos" element={<Video />} />
+        <Route path="/videos/:user_id" element={<Video />} />
         <Route path="/images" element={<h2>Activity Images Page</h2>} />
         <Route path="/comments" element={<h2>Comments Page</h2>} />
         <Route path="/activity/:activityNumber" element={<VideoUpload />} />
